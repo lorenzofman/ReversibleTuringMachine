@@ -31,4 +31,4 @@ InitialState FinalState ReadSymbol WriteSymbol ShiftDirection
 
 The simulator accepts or rejects the input as the ordinary Turing machine would.
 
-For an example of ordinary (tested) Turing Machine use [Balanced Parenthesis](ReversibleTuringMachine\InputExamples\BalancedParenthesis.txt)
+> For an example of ordinary (tested) Turing Machine use [Balanced Parenthesis](ReversibleTuringMachine/InputExamples/BalancedParenthesis.txt)
