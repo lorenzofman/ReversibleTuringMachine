@@ -8,8 +8,8 @@ namespace ComputerTheory
     {
         public const char Blank = 'B';
 
-        public string Name { get; } 
-        
+        public string Name { get; }
+
         /* Using two stacks give the ability for the tape be infinite in any direction. I am not sure if any paper
          explores it, but I think it's pretty elegant since I don't need to specify an upper boundary */
         private readonly InfiniteStack<char> leftStack = new(Blank);
@@ -103,10 +103,11 @@ namespace ComputerTheory
                 yield return right;
             }
         }
+        
+        public bool SeeksBegin => leftStack.All(x => x == Blank);
+        public bool SeeksEnd => rightStack.All(x => x == Blank) && current == Blank;
 
-        public bool IsBlank()
-        {
-            return current == Blank && leftStack.All(x => x == Blank) && rightStack.All(x => x == Blank);
-        }
+        public bool IsBlank => current == Blank && leftStack.All(x => x == Blank) && rightStack.All(x => x == Blank);
+
     }
 }

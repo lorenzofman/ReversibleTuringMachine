@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
+using System.Text;
 
 namespace ComputerTheory
 {
@@ -15,11 +15,6 @@ namespace ComputerTheory
         private readonly Dictionary<string, MultiTapeState> states = new();
 
         /// <summary>
-        /// Read only public accessor on top of <see cref="states"/>
-        /// </summary>
-        public IReadOnlyCollection<MultiTapeState> States => states.Values;
-
-        /// <summary>
         /// The initial state
         /// </summary>
         public MultiTapeState Initial { get; }
@@ -27,7 +22,7 @@ namespace ComputerTheory
         /// <summary>
         /// Tapes collection
         /// </summary>
-        public IReadOnlyCollection<Tape> Tapes { get; }
+        public IReadOnlyList<Tape> Tapes { get; }
 
         /// <summary>
         /// Creates a new reversible turing machine from an ordinary turing machine
@@ -45,17 +40,18 @@ namespace ComputerTheory
             Initial = states.Single(st => st.Key == tm.Initial.Name).Value;
         }
 
-        private MultiTapeState GetOrCreateState(string name, bool isFinal = false)
+        private MultiTapeState GetOrCreateState(string name, bool isFinal = false, Action callback = null)
         {
             if (states.ContainsKey(name))
             {
                 MultiTapeState state = states[name];
+                state.Callback += callback;
                 TuringUtils.TuringAssert(isFinal == state.IsFinal, $"{state} was created before and it is not final.");
                 return state;
             }
             else
             {
-                MultiTapeState state = new(name, isFinal);
+                MultiTapeState state = new(name, callback, isFinal);
                 states.Add(name, state);
                 return state;
             }
@@ -91,9 +87,9 @@ namespace ComputerTheory
                     new NullOperation()));
             }
 
-            MultiTapeState multiFinal = GetOrCreateState($"{tm.Final.Name}");
+            MultiTapeState multiFinal = GetOrCreateState($"{tm.Final.Name}", false, OnCompute);
 
-            multiFinal.AddTransition(new MultiTapeTransition(GetOrCreateState("Seek Start"),
+            multiFinal.AddTransition(new MultiTapeTransition(GetOrCreateState("Copy Output"),
                 new NullOperation(),
                 new NullOperation(),
                 new NullOperation()));
@@ -107,19 +103,16 @@ namespace ComputerTheory
         {
             MultiTapeState copyOutput = GetOrCreateState("Copy Output");
             MultiTapeState seekStart = GetOrCreateState("Seek Start");
-            MultiTapeState seekStart2 = GetOrCreateState("Seek Start 2");
 
-            MultiTapeState next = GetOrCreateState($"{tm.Final.Name} Inverted");
+            MultiTapeState next = GetOrCreateState($"{tm.Final.Name} Inverted", false, OnCopyOutput);
             foreach (char symbol in tm.TapeSymbols)
             {
-                CreateHeadRepositioningTransition(seekStart, seekStart, symbol, ShiftDirection.Left);
                 CreateCopyOutputTransition(copyOutput, copyOutput, symbol, ShiftDirection.Right);
-                CreateHeadRepositioningTransition(seekStart2, seekStart2, symbol, ShiftDirection.Left);
+                CreateHeadRepositioningTransition(seekStart, seekStart, symbol, ShiftDirection.Left);
             }
 
-            CreateHeadRepositioningTransition(seekStart, copyOutput, Tape.Blank, ShiftDirection.Right);
-            CreateCopyOutputTransition(copyOutput, seekStart2, Tape.Blank, ShiftDirection.Left);
-            CreateHeadRepositioningTransition(seekStart2, next, Tape.Blank, ShiftDirection.Right);
+            CreateCopyOutputTransition(copyOutput, seekStart, Tape.Blank, ShiftDirection.Left);
+            CreateHeadRepositioningTransition(seekStart, next, Tape.Blank, ShiftDirection.Right);
 
         }
 
@@ -177,8 +170,44 @@ namespace ComputerTheory
                     new ShiftOperation(ShiftDirection.Left),
                     new NullOperation()));
             }
+
+            GetOrCreateState($"{tm.Initial.Name} Inverted", true, OnRetrace);
         }
         #endregion
+        
+        private void OnCompute()
+        {
+            Console.WriteLine("Machine state after computing");
+            Console.WriteLine(this);
+            TuringUtils.TuringAssert(Tapes[0].SeeksBegin, "Compute must finish with working tape head seeking start");
+            TuringUtils.TuringAssert(Tapes[2].IsBlank, "Compute must not write to output tape");
+        }
+
+        private void OnCopyOutput()
+        {
+            Console.WriteLine("Machine state after copying output");
+            Console.WriteLine(this);
+            TuringUtils.TuringAssert(Tapes[0].SeeksBegin, "Copy output must finish with working tape head seeking start");
+            TuringUtils.TuringAssert(Tapes[2].SeeksBegin, "Copy output must not write to output tape");
+        }
+
+        private void OnRetrace()
+        {
+            Console.WriteLine("Machine state after retracing");
+            Console.WriteLine(this);
+        }
+        
+        public override string ToString()
+        {
+            StringBuilder sb = new();
+            sb.AppendLine("Machine state: ");
+            foreach (Tape tape in Tapes)
+            {
+                sb.AppendLine($"\t{tape}");
+            }
+
+            return sb.ToString();
+        }
     }
 }
 

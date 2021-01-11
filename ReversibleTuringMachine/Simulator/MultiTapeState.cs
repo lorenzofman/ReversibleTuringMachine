@@ -11,11 +11,14 @@ namespace ComputerTheory
         
         public string Name { get; }
         public bool IsFinal { get; }
+
+        public Action Callback { get; set; }
         
-        public MultiTapeState(string name, bool isFinal = false)
+        public MultiTapeState(string name, Action callback, bool isFinal)
         {
             Name = name;
             IsFinal = isFinal;
+            Callback = callback;
         }
         
         public void AddTransition(MultiTapeTransition tapeOperation)
@@ -31,21 +34,26 @@ namespace ComputerTheory
             {
                 case 1:
                     MultiTapeTransition deterministicTransition = matching.First();
-                    Console.Write("Executing transition: ");
+                    TuringUtils.Write("Executing transition: ");
                     deterministicTransition.Execute(ref multiTapeState, tapes);
                     return true;
                 case 0:
-                    Console.WriteLine("Found zero transitions");
+                    TuringUtils.WriteLine("Found zero transitions");
                     return false;
                 default:
-                    Console.WriteLine("Found multiple conditions");
+                    TuringUtils.WriteLine("Found multiple conditions");
                     throw new NonDeterministicTransition(matching);
             }
         }
-
+        
         public override string ToString()
         {
             return Name;
+        }
+
+        public void Signal()
+        {
+            Callback?.Invoke();
         }
     }
 }

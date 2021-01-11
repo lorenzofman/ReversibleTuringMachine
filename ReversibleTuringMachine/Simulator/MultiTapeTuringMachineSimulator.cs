@@ -8,18 +8,6 @@ namespace ComputerTheory
     {
         private readonly IMultiTapeTuringMachineDefinition multiTapeTuringMachineDefinition;
 
-        public override string ToString()
-        {
-            StringBuilder sb = new();
-            sb.AppendLine("Machine state: ");
-            foreach (Tape tape in multiTapeTuringMachineDefinition.Tapes)
-            {
-                sb.AppendLine($"\t{tape}");
-            }
-
-            return sb.ToString();
-        }
-
         public MultiTapeTuringMachineSimulator(IMultiTapeTuringMachineDefinition multiTapeTuringMachineDefinition)
         {
             this.multiTapeTuringMachineDefinition = multiTapeTuringMachineDefinition;
@@ -29,11 +17,13 @@ namespace ComputerTheory
         {
             MultiTapeState currentState = multiTapeTuringMachineDefinition.Initial;
 
-            while (currentState.DeterministicTransition(ref currentState, multiTapeTuringMachineDefinition.Tapes))
+            do
             {
-                TuringUtils.WriteLine(ToString());
-            }
-
+                currentState.Signal();
+            } while (currentState.DeterministicTransition(ref currentState, multiTapeTuringMachineDefinition.Tapes));
+            
+            currentState.Signal();
+            
             Halt(currentState.IsFinal ? CompletionState.Accept : CompletionState.Reject);
         }
 
@@ -62,7 +52,6 @@ namespace ComputerTheory
     public interface IMultiTapeTuringMachineDefinition
     {
         MultiTapeState Initial { get; }
-        IReadOnlyCollection<MultiTapeState> States { get; }
-        IReadOnlyCollection<Tape> Tapes { get; }
+        IReadOnlyList<Tape> Tapes { get; }
     }
 }
